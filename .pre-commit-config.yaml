@@ -1,0 +1,79 @@
+default_language_version:
+  python: python3
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # list of supported hooks: https://pre-commit.com/hooks.html
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-docstring-first
+      - id: check-yaml
+      - id: debug-statements
+      - id: detect-private-key
+      - id: check-toml
+      - id: check-case-conflict
+      - id: check-added-large-files
+
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.16.0
+    hooks:
+      - id: yamlfmt
+        types: [yaml]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      # Run the linter.
+      - id: ruff
+        types: [python]
+        args:
+          - "check"
+          - "--fix"
+          - "--target-version"
+          - "py310"
+          - "--select"
+          - "I"
+      # Run the formatter.
+      - id: ruff-format
+        types: [python]
+
+  # md formatting
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.22
+    hooks:
+      - id: mdformat
+        args: ["--number"]
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-tables
+          - mdformat_frontmatter
+          # - mdformat-toc
+          # - mdformat-black
+
+  # word spelling linter
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args:
+          - --skip=logs/**,data/**,*.ipynb,**/nouns.txt,**/adjectives.txt
+          - --ignore-words-list=hist,circularly,ot
+
+  # jupyter notebook cell output clearing
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.1
+    hooks:
+      - id: nbstripout
+        args: ["--install", "--attributes", ".gitattributes"]
+
+  # jupyter notebook linting
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.9.1
+    hooks:
+      - id: nbqa-black
+        args: ["--line-length=99"]
+      - id: nbqa-isort
+        args: ["--profile=black"]
+      - id: nbqa-flake8
+        args: ["--extend-ignore=E203,E402,E501,F401,F841", "--exclude=logs/*,data/*"]

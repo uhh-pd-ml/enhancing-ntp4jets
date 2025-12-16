@@ -1,0 +1,14 @@
+part_pt: {multiply_by: 1, subtract_by: 1.8, func: "signed_log", inv_func: "signed_exp"}
+part_etarel: {multiply_by: 3}
+part_phirel: {multiply_by: 3}
+part_mass: {"clip_min_input_space": 0}
+part_charge: null
+part_isChargedHadron: null
+part_isNeutralHadron: null
+part_isPhoton: null
+part_isElectron: null
+part_isMuon: null
+part_d0val: {func: "signed_log", inv_func: "signed_exp"}
+part_dzval: {func: "signed_log", inv_func: "signed_exp"}
+part_d0err: null
+part_dzerr: null

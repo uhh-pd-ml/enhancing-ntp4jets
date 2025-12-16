@@ -1,0 +1,136 @@
+# @package _global_
+
+# to execute this experiment run:
+# python gabbro/train.py experiment=example_experiment_tokenization_transformer
+
+defaults:
+  - override /feature_dict: feature_dict_kin_massles_without_cuts.yaml
+  - override /data: iter_dataset_jetclass_all_types.yaml
+  - override /model: model_vqvae_transformer.yaml
+  - override /callbacks: tokenization_callbacks.yaml
+  - override /trainer: gpu.yaml
+
+# add here checkpoint to continue training
+# load_weights_from --> load the weights of the model from a checkpoint
+# load_weights_strict --> if true, the weights will be loaded strictly, i.e. the model architecture must match the checkpoint
+# continue_from_checkpoint --> continue training from a checkpoint (weights, optimizer, scheduler, etc.)
+load_weights_from: false
+load_weights_strict: false
+continue_from_checkpoint: null
+
+project_name: "tokenization"
+tags: ["vqvae_tokenization"]
+
+run_note: ""
+
+seed: null
+
+data:
+  data_dir: /data/dust/user/birkjosc/datasets/jetclass/JetClass
+  batch_size:
+    train: 500
+    val: 2000
+    test: 2000
+  dataset_kwargs_train:
+    n_files_at_once: 10
+    load_only_once: false
+    n_jets_per_file: 100_000
+  dataset_kwargs_val:
+    n_files_at_once: 10
+    load_only_once: true
+    shuffle_only_once: true
+    n_jets_per_file: 10_000
+  dataset_kwargs_test:
+    n_files_at_once: 10
+    load_only_once: true
+    shuffle_only_once: true
+    n_jets_per_file: 20_000
+  dataset_kwargs_common:
+    shuffle_particles: true
+    n_files_at_once: 10
+    load_only_once: false
+    pad_length: 128
+    feature_dict: ${feature_dict} # this is the feature dict to use, e.g. feature_dict_kin_massless.yaml
+    # if jet features are used as conditioning, adjust the `conditional_dim` in the model_kwargs
+    feature_dict_jet: null
+
+trainer:
+  max_steps: 1_000_000
+  gradient_clip_val: 5
+  log_every_n_steps: 10
+  devices: 1
+  num_nodes: 1
+  limit_train_batches: ${eval:'int(${data.dataset_kwargs_train.n_files_at_once} * ${data.dataset_kwargs_train.n_jets_per_file} / ${data.batch_size.train} / ${trainer.devices} / ${trainer.num_nodes})'}
+  limit_val_batches: ${eval:'int(${data.dataset_kwargs_val.n_files_at_once} * ${data.dataset_kwargs_val.n_jets_per_file} / ${data.batch_size.val} / ${trainer.devices} / ${trainer.num_nodes})'}
+
+model:
+  model_kwargs_loaded: null
+  # --- optimizer configuration ---
+  optimizer:
+    _target_: gabbro.utils.optimizer.ranger.Ranger
+    _partial_: true
+    lr: 0.001
+    weight_decay: 1e-2
+    betas: [0.95, 0.999]
+    eps: 1e-5
+    alpha: 0.5
+    k: 6
+  # --- learning rate scheduler ---
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ConstantLR
+    _partial_: true
+    total_iters: 1
+    factor: 1
+  scheduler_lightning_kwargs:
+    monitor: "val_loss"
+    interval: "step"
+    frequency: 1
+  # --- model architecture configuration ---
+  model_type: VQVAETransformer
+  model_kwargs:
+    old_transformer_implementation: false
+    in_out_proj_cfg: null
+    latent_proj_cfg: null
+    input_features_dict: ${feature_dict} # this is the feature dict to use, e.g. feature_dict_kin_massless.yaml
+    causal_decoder: true # if true, the decoder uses a causal mask
+    conditional_dim: 0
+    hidden_dim: 128
+    latent_dim: 8
+    num_blocks: 4
+    num_heads: 8
+    alpha: 10
+    max_sequence_len: 128
+    transformer_cfg:
+      attn_cfg:
+        num_heads: ${model.model_kwargs.num_heads}
+        dropout_rate: 0.0
+        norm_before: true
+        norm_after: false
+      mlp_cfg:
+        expansion_factor: 4
+        dropout_rate: 0.0
+        norm_before: true
+        activation: GELU
+      residual_cfg:
+        gate_type: local
+        init_value: 1.0
+    vq_kwargs:
+      num_codes: 8192
+      beta: 0.9
+      kmeans_init: false # if you want to use this, you have to use the v0.2.5 docker image!
+      norm: null
+      cb_norm: null
+      affine_lr: 2
+      sync_nu: 1
+      replace_freq: 500
+
+task_name: "tokenization"
+
+logger:
+  wandb:
+    project: ${project_name}
+    tags: ${tags}
+    name: ${task_name}
+  comet:
+    experiment_name: null
+    project_name: ${project_name}

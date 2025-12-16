@@ -1,0 +1,7 @@
+weight_monitoring:
+  _target_: gabbro.callbacks.model_monitoring.LogWeightNorm
+  depth: -1
+
+weight_monitoring_global:
+  _target_: gabbro.callbacks.model_monitoring.LogWeightNorm
+  depth: 1

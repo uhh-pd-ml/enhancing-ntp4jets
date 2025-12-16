@@ -1,0 +1,7 @@
+gradient_monitoring:
+  _target_: gabbro.callbacks.model_monitoring.LogGradNorm
+  depth: -1
+
+gradient_monitoring_global:
+  _target_: gabbro.callbacks.model_monitoring.LogGradNorm
+  depth: 1

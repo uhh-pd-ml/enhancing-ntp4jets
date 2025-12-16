@@ -1,0 +1,12 @@
+_target_: gabbro.models.backbone_multihead.BackboneMultiHeadLightning
+
+model_kwargs: null
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ConstantLR
+  _partial_: true

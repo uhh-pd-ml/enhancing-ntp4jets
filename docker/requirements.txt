@@ -1,0 +1,57 @@
+cupy-cuda12x
+# flash_attn==2.7.3
+# dcor==0.6        # calculate distance correlation -> remove cause it requires numpy < 2
+# fsspec==2023.12.2  # already installed in the base image
+gif==23.3.0        # simplifies animations
+h5py==3.12.1
+# MarkupSafe==2.1.3  # already installed in the base image
+matplotlib==3.8.4
+mnist==0.2.2
+nltk==3.8.1  # natural-language toolkit to generate unique but readable run-ids
+pandas==2.2.3
+pyarrow==19
+scikit-learn==1.6
+seaborn==0.13
+tables==3.10.2
+zuko==1.3
+
+# -------- hep stuff -------
+awkward==2.7.3
+energyflow
+fastjet==3.4.2.1
+jetnet==0.2.5
+# law==0.1.18
+# ragged==0.1.0
+uproot==5.1.2
+weaver-core==0.4.15 # unfortunately requires old uproot version (and with that I think old numpy version)
+
+# --------- pytorch --------- #
+pytorch-cpr
+flow_matching==1.0
+lightning==2.5
+pytorch-lightning==2.5
+rangerlite==1.0.0
+# torchdyn==1.0.6
+torchinfo
+torchmetrics==1.6
+# torchvision==0.2  # already installed in the base image
+
+# --------- hydra --------- #
+hydra-colorlog==1.2.0
+hydra-core==1.3.2
+hydra-optuna-sweeper==1.2.0
+
+# --------- loggers --------- #
+comet-ml==3.49.7
+wandb==0.16.6
+
+# --------- dev tools & others --------- #
+black
+isort
+pre-commit      # hooks for applying linters on commit
+pylint
+pyrootutils==1.0.4    # standardizing the project root setup
+pytest          # tests
+rich            # beautiful text formatting in terminal
+ruff            # fast linter/formatter
+testfixtures==8.3.0

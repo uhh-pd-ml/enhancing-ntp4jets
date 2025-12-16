@@ -1,0 +1,208 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example_experiment_joint_pretraining
+
+defaults:
+  - override /feature_dict: feature_dict_kin_massless_without_cuts.yaml
+  - override /data: iter_dataset_jetclass_all_types
+  - override /model: backbone_multihead.yaml
+  - override /callbacks: callbacks_for_multihead_training.yaml
+  - override /trainer: ddp.yaml
+
+project_name: "omnijet-multihead"
+tags: [omnijet-multihead]
+
+run_note: ""
+
+seed: null
+# load_weights_from --> load the weights of the model from a checkpoint
+# load_weights_strict --> if true, the weights will be loaded strictly, i.e. the model architecture must match the checkpoint
+# continue_from_checkpoint --> continue training from a checkpoint (weights, optimizer, scheduler, etc.) - specify a path here!
+load_weights_from: false
+load_weights_strict: true
+continue_from_checkpoint: null
+
+token_head_cfg: &token_head_cfg
+  n_pred: 1 # number of tokens to predict per position (i.e. if set to 1, this is the default next-token / masked token prediction)
+  positions_to_include_in_loss: all # 'only_survived', 'only_masked'  'all' ('all' means that the model will predict all tokens, including the ones that were masked out)
+  apply_causal_mask: true
+  unembedding_mlp_cfg: null # set to null to just use a linear layer
+  transformer_cfg:
+    n_blocks: 2
+    dim: 128
+    norm_after_blocks: true
+    attn_cfg:
+      dropout_rate: 0.1
+      num_heads: 8
+      norm_before: true
+      norm_after: false
+    residual_cfg:
+      gate_type: local
+      init_value: 1.0
+    mlp_cfg:
+      dropout_rate: 0.0
+      norm_before: true
+      expansion_factor: 2
+      activation: GELU
+    post_blocks_point_drop_cfg: null
+    attn_point_drop_cfg: null
+
+model:
+  backbone_lr_factor: null # null = all weights trained with same learning rate, otherwise backbone lr is multiplied with this factor
+  model_kwargs_loaded: null
+  pos_encoding_type: sort_by_first_feature_descending_in_masked_subset
+  causal_bidirectional_hybrid: true # if true: causal (& non-masked) forward pass for gen, bidirectional (& masked) forward pass for MPM
+  masked_input_treatment: 'exclude'
+  start_token_type: trainable # options are: 'trainable', 'zero_pad', `null`
+  exclude_padded_values_from_loss: true
+  loss_term_weights: # loss term weighting factors for different tasks
+    mpm: 1.0
+    class: 0.0 # --> class head won't even be initialized
+    gen: 1.0
+  class_head_cfg: # this is the class head for the classification task
+    n_out_nodes: 10
+  gen_head_cfg:
+    # this is the generation head for the next token prediction task
+    # if set to None, no generation head will be used
+    !!merge <<: *token_head_cfg
+    apply_causal_mask: true
+    positions_to_include_in_loss: all
+  mpm_head_cfg:
+    !!merge <<: *token_head_cfg
+    apply_causal_mask: false
+    positions_to_include_in_loss: only_masked
+    use_old_head_definition: false
+  backbone_cfg:
+    # --- stuff caught by the lightning wrapper ---
+    backbone_weights_path: null
+    token_dir: ${data.data_dir}
+    mask_fraction: 0.4
+    # --- stuff for the torch model ---
+    apply_causal_mask: true
+    embedding_dim: 128
+    max_sequence_len: ${data.dataset_kwargs_common.pad_length}
+    vocab_size: 8194
+    n_registers: 8
+    particle_features_dict: ${data.dataset_kwargs_common.feature_dict} # to extract input dim
+    jet_features_dict: ${data.dataset_kwargs_common.feature_dict_jet} # to extract input dim
+    interaction_cfg: null
+    embed_cfg:
+      type: continuous_project_add
+      intermediate_dim: null # if used in combination with token-id input, the nn.Embedding will project into this intermediate dimension and a linear layer follows
+    transformer_cfg:
+      transformer_implementation: null # <- allows for some backwards compatibility, but `null` is current version
+      n_blocks: 8
+      dim: ${model.backbone_cfg.embedding_dim}
+      norm_after_blocks: true
+      attn_cfg:
+        dropout_rate: 0.1
+        num_heads: 8
+        norm_before: true
+        norm_after: false
+      residual_cfg:
+        gate_type: local # global or local
+        init_value: 1
+      mlp_cfg:
+        dropout_rate: 0.1
+        norm_before: true
+        expansion_factor: 4
+        activation: GELU # has to be accessible via torch.nn.<activation>
+      post_blocks_point_drop_cfg: null
+      attn_point_drop_cfg: null
+
+  optimizer:
+    _target_: rangerlite.RangerLite
+    _partial_: true
+    lr: 1e-3
+    weight_decay: 1e-2
+    betas: [0.95, 0.999]
+    eps: 1e-5
+    lookahead_alpha: 0.5
+    lookahead_steps: 6
+
+  scheduler_lightning_kwargs:
+    monitor: "val_loss"
+    interval: "step"
+    frequency: 1
+
+callbacks:
+  early_stopping:
+    patience: 5 # number of checks with no improvement after which training will be stopped
+  model_checkpoint:
+    save_top_k: 5 # save k best models (determined by above metric)
+  classification_callback:
+    log_images: false
+
+data:
+  batch_size:
+    train: 250
+    val: 1000
+    test: 1000
+  data_dir: /data/dust/user/birkjosc/datasets/jetclass_tokenized/2025-08-29_17-45-25_g003_EnnoblingHip_923012_all_files_all_types # 8k, kin-only
+  dataset_kwargs_train:
+    max_n_files_per_type: 100
+    shuffle_files: true
+    shuffle_data: true
+    load_only_once: false
+    shuffle_only_once: false
+    n_files_at_once: 10
+    n_jets_per_file: 100_000
+  dataset_kwargs_val:
+    seed: 1
+    random_seed_for_per_file_shuffling: null
+    seed_shuffle_data: 1
+    shuffle_data: true
+    max_n_files_per_type: 10
+    shuffle_only_once: true
+    load_only_once: true
+    n_files_at_once: 10
+    n_jets_per_file: 10_000
+  dataset_kwargs_test:
+    max_n_files_per_type: 1
+    shuffle_only_once: true
+    load_only_once: false
+    n_files_at_once: 10
+    n_jets_per_file: 100_000
+  dataset_kwargs_common:
+    seed: ${seed}
+    dataset_type: jetclass
+    seed_shuffle_data: ${seed}
+    random_seed_for_per_file_shuffling: ${seed}
+    pad_length: 100
+    pad_fill_value: 0
+    feature_dict_labels_particles:
+      part_token_id_without_last: {}
+      part_token_id_without_first: {}
+    feature_dict: ${feature_dict}
+    feature_dict_jet:
+      jet_nparticles: {multiply_by: 0.1, subtract_by: 50}
+    token_id_cfg:
+      remove_start_token: false
+      remove_end_token: false
+      shift_tokens_minus_one: false
+      add_padded_particle_features_start: true
+      add_padded_particle_features_end: false
+      feature_resolution: tokenized
+      particle_features: ${feature_dict}
+
+trainer:
+  max_steps: 1_000_000
+  gradient_clip_val: 1
+  log_every_n_steps: 20
+  devices: 1
+  num_nodes: 1
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  val_check_interval: 25000
+
+task_name: "omnijet_backbone"
+
+logger:
+  wandb:
+    project: ${project_name}
+    tags: ${tags}
+    name: ${task_name}
+  comet:
+    experiment_name: null
+    project_name: ${project_name}
