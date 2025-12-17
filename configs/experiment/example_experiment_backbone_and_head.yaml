@@ -1,7 +1,7 @@
 # @package _global_
 
 # to execute this experiment run:
-# python train.py experiment=example_experiment_joint_pretraining
+# python train.py experiment=example_experiment_backbone_and_head
 
 defaults:
   - override /feature_dict: feature_dict_kin_massless_without_cuts.yaml
