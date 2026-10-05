@@ -115,3 +115,7 @@ python gabbro/train.py \
     'model.causal_bidirectional_hybrid=false' \
     'model.backbone_cfg.apply_causal_mask=false'
 ```
+
+## Checkpoints
+
+The checkpoints and the corresponding config files for the NTP token-ID, NTP continuous, MPM and Joint NTP+MPM trainings presented in the paper can be downloaded from [Zenodo](https://zenodo.org/records/23157722).
