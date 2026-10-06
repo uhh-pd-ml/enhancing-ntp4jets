@@ -4,7 +4,7 @@
 # python gabbro/train.py experiment=example_experiment_tokenization_transformer
 
 defaults:
-  - override /feature_dict: feature_dict_kin_massles_without_cuts.yaml
+  - override /feature_dict: feature_dict_kin_massless_without_cuts.yaml
   - override /data: iter_dataset_jetclass_all_types.yaml
   - override /model: model_vqvae_transformer.yaml
   - override /callbacks: tokenization_callbacks.yaml
@@ -73,8 +73,7 @@ model:
     weight_decay: 1e-2
     betas: [0.95, 0.999]
     eps: 1e-5
-    alpha: 0.5
-    k: 6
+  
   # --- learning rate scheduler ---
   scheduler:
     _target_: torch.optim.lr_scheduler.ConstantLR

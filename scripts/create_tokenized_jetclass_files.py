@@ -278,7 +278,6 @@ def main(
                 filename_out=filename_out,
                 add_start_end_tokens=True,
                 model_ckpt_path=ckpt_path,
-                binning_cfg=binning_cfg_path,
                 save_token_id_only=save_token_id_only,
                 dataset_type=dataset_type,
                 shuffle_particles=shuffle_particles,
